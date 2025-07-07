@@ -481,7 +481,7 @@ class BaseVelAction(ArticulatedAgentAction):
 
         before_trans_state = self._capture_articulated_agent_state()
 
-        trans = self.cur_articulated_agent.sim_obj.transformation
+        trans = self.cur_articulated_agent.base_tf
         rigid_state = habitat_sim.RigidState(
             mn.Quaternion.from_matrix(trans.rotation()), trans.translation
         )
@@ -493,17 +493,17 @@ class BaseVelAction(ArticulatedAgentAction):
             rigid_state.translation, target_rigid_state.translation
         )
 
-        # try_step may fail, in which case it simply returns the start argument
-        did_try_step_fail = end_pos == rigid_state.translation
-        if not did_try_step_fail:
-            # If try_step succeeded, it snapped our start position to the navmesh
-            # We should apply the base offset
-            end_pos -= self.cur_articulated_agent.params.base_offset
+        # # try_step may fail, in which case it simply returns the start argument
+        # did_try_step_fail = end_pos == rigid_state.translation
+        # if not did_try_step_fail:
+        #     # If try_step succeeded, it snapped our start position to the navmesh
+        #     # We should apply the base offset
+        #     end_pos -= self.cur_articulated_agent.params.base_offset
 
         target_trans = mn.Matrix4.from_(
             target_rigid_state.rotation.to_matrix(), end_pos
         )
-        self.cur_articulated_agent.sim_obj.transformation = target_trans
+        self.cur_articulated_agent.base_tf = target_trans
 
         if not self._allow_dyn_slide:
             # Check if in the new articulated_agent state the arm collides with anything.
@@ -512,7 +512,7 @@ class BaseVelAction(ArticulatedAgentAction):
             if did_coll:
                 # Don't allow the step, revert back.
                 self._set_articulated_agent_state(before_trans_state)
-                self.cur_articulated_agent.sim_obj.transformation = trans
+                self.cur_articulated_agent.base_tf = trans
         if self.cur_grasp_mgr.snap_idx is not None:
             # Holding onto an object, also kinematically update the object.
             # object.

@@ -148,12 +148,10 @@ class ArticulatedAgentBase(ArticulatedAgentInterface):
 
         # via configured local offset from origin
         if self._base_type in ["mobile", "leg"]:
-            return (
-                self.sim_obj.translation
-                + self.sim_obj.transformation.transform_vector(
-                    self.params.base_offset
-                )
-            )
+            world_t_mesh = self.sim_obj.transformation
+            base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+            world_t_base = world_t_mesh @ base_t_mesh.inverted()
+            return mn.Vector3(np.array(world_t_base)[:3, 3])
         else:
             raise NotImplementedError("The base type is not implemented.")
 
@@ -165,12 +163,11 @@ class ArticulatedAgentBase(ArticulatedAgentInterface):
         if self._base_type in ["mobile", "leg"]:
             if len(position) != 3:
                 raise ValueError("Base position needs to be three dimensions")
-            self.sim_obj.translation = (
-                position
-                - self.sim_obj.transformation.transform_vector(
-                    self.params.base_offset
-                )
-            )
+            base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+            world_t_base = mn.Matrix4.from_(mn.Matrix3.identity_init(), position)
+            world_t_mesh = world_t_base @ base_t_mesh
+            self.sim_obj.transformation = mn.Matrix4.from_(self.sim_obj.rotation.to_matrix(), mn.Vector3(np.array(world_t_mesh)[:3, 3]))
+            self.sim_obj.translation = mn.Vector3(np.array(world_t_mesh)[:3, 3])
         else:
             raise NotImplementedError("The base type is not implemented.")
 
@@ -180,7 +177,10 @@ class ArticulatedAgentBase(ArticulatedAgentInterface):
         Returns scalar rotation angle of the agent around the Y axis.
         Within range (-pi,pi) consistency with setter is tested. Outside that range, an equivalent but distinct rotation angle may be returned (e.g. 2pi == -2pi == 0).
         """
-        angle = float(self.sim_obj.rotation.angle())
+        world_t_mesh = self.sim_obj.transformation
+        base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+        world_t_base = world_t_mesh @ base_t_mesh.inverted()
+        angle = float(mn.Quaternion.from_matrix(np.array(world_t_base)[:3, :3]).angle())
         # NOTE: if the quaternion axis is inverted (-Y) then the angle will be negated
         if self.sim_obj.rotation.axis()[1] < 0:
             angle = -1 * angle
@@ -199,11 +199,29 @@ class ArticulatedAgentBase(ArticulatedAgentInterface):
         Set the scalar rotation angle of the agent around the Y axis.
         """
         if self._base_type == "mobile" or self._base_type == "leg":
-            self.sim_obj.rotation = mn.Quaternion.rotation(
-                mn.Rad(rotation_y_rad), mn.Vector3(0, 1, 0)
-            )
+            base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+            world_t_base_rot = mn.Quaternion.rotation(mn.Rad(rotation_y_rad), mn.Vector3(0, 1, 0)).to_matrix()
+            world_t_base = mn.Matrix4.from_(world_t_base_rot, mn.Vector3.zero_init())
+            world_t_mesh = world_t_base @ base_t_mesh
+            self.sim_obj.transformation = mn.Matrix4.from_(np.array(world_t_mesh)[:3, :3], self.sim_obj.translation)
+            self.sim_obj.rotation = mn.Quaternion.from_matrix(np.array(world_t_mesh)[:3, :3])
         else:
             raise NotImplementedError("The base type is not implemented.")
+    
+    @property
+    def base_tf(self):
+        world_t_mesh = self.sim_obj.transformation
+        base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+        world_t_base = world_t_mesh @ base_t_mesh.inverted()
+        return world_t_base
+
+    @base_tf.setter
+    def base_tf(self, tf: mn.Matrix4):
+        base_t_mesh = mn.Matrix4.from_(self.params.base_rot_offset.to_matrix(), -self.params.base_offset)
+        world_t_mesh = tf @ base_t_mesh
+        self.sim_obj.transformation = mn.Matrix4.from_(np.array(world_t_mesh)[:3, :3], self.sim_obj.translation)
+        self.sim_obj.rotation = mn.Quaternion.from_matrix(np.array(world_t_mesh)[:3, :3])
+        self.sim_obj.translation = mn.Vector3(np.array(world_t_mesh)[:3, 3])
 
     @property
     def leg_motor_pos(self):
@@ -270,21 +288,6 @@ class ArticulatedAgentBase(ArticulatedAgentInterface):
         return (
             self.sim_obj.get_link_name(link_id) in self.params.base_link_names
         )
-
-    def update_base(self, rigid_state, target_rigid_state):
-        end_pos = self._sim.step_filter(
-            rigid_state.translation, target_rigid_state.translation
-        )
-        # Offset the end position
-        end_pos -= self.params.base_offset
-        target_trans = mn.Matrix4.from_(
-            target_rigid_state.rotation.to_matrix(), end_pos
-        )
-        self.sim_obj.transformation = target_trans
-
-        if self._base_type == "leg":
-            # Fix the leg joints
-            self.leg_joint_pos = [0.0, 0.7, -1.5] * 4
 
     def _validate_ctrl_input(self, ctrl: List[float], joints: List[int]):
         """
