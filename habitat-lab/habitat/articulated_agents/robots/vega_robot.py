@@ -30,12 +30,12 @@ class VegaRobot(MobileManipulator):
             cameras={
                 "head": ArticulatedAgentCameraParams(
                     cam_offset_pos=mn.Vector3(
-                        0.4164822634134684, 0.0, 0.03614789234067159
+                        0.0, 0.0, 0.1
                     ),
                     cam_orientation=mn.Vector3(
-                        0.0290787, -0.940569, -0.38998877
+                        np.pi / 2.0, 0.0, 3.0 * np.pi / 2.0
                     ),
-                    attached_link_id=26,
+                    attached_link_id=37,
                 ),
                 "third": ArticulatedAgentCameraParams(
                     cam_offset_pos=mn.Vector3(-2.0, 0.0, 1.0),
