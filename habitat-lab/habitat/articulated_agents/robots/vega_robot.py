@@ -16,12 +16,12 @@ from habitat.articulated_agents.mobile_manipulator import (
 class VegaRobot(MobileManipulator):
     def _get_vega_params(self):
         return MobileManipulatorParams(
-            arm_joints=[21, 22, 24, 25] + list(range(27, 34)) + [35, 36, 37],
+            arm_joints=list(range(19, 26)) + list(range(27, 34)),
             gripper_joints=[36, 37],
-            leg_joints=[1, 2, 7, 8, 12, 13, 16, 17, 18, 19, 20, 23],
-            arm_init_params=np.zeros(14),
+            leg_joints=[1],
+            arm_init_params=np.array([np.pi*2.0/3.0, 0.0, 0.0, -np.pi*2.0/3.0, 0.0, 0.0, 0.0, -np.pi*2.0/3.0, 0.0, 0.0, -np.pi*2.0/3.0, 0.0, 0.0, 0.0]), # [L_j1, L_j2, L_j3, L_j4, L_j5, L_j6, L_j7, R_j1, R_j2, R_j3, R_j4, R_j5, R_j6, R_j7]
             gripper_init_params=np.zeros(2),
-            leg_init_params=np.zeros(12),
+            leg_init_params=np.zeros(1),
             ee_offset=[mn.Vector3(0.0, 0.0, 0.0)],
             ee_links=[37, 38],
             ee_constraint=np.array(
@@ -38,9 +38,9 @@ class VegaRobot(MobileManipulator):
                     attached_link_id=37,
                 ),
                 "third": ArticulatedAgentCameraParams(
-                    cam_offset_pos=mn.Vector3(-2.0, 0.0, 1.0),
+                    cam_offset_pos=mn.Vector3(-1.0, 0.0, 1.0),
                     cam_orientation=mn.Vector3(np.pi / 4.0, 0.0, 3.0 * np.pi / 2.0),
-                    attached_link_id=26,
+                    attached_link_id=37,
                 ),
             },
             gripper_closed_state=np.array([0.0], dtype=np.float32),
