@@ -23,22 +23,18 @@ class VegaRobot(MobileManipulator):
             gripper_init_params=np.zeros(2),
             leg_init_params=np.zeros(1),
             ee_offset=[mn.Vector3(0.0, 0.0, 0.0)],
-            ee_links=[37, 38],
+            ee_links=[34, 26],
             ee_constraint=np.array(
                 [[[-0.08, 0.29], [-0.84, -0.27], [0.01, 1.12]]]
             ),
             cameras={
                 "head": ArticulatedAgentCameraParams(
-                    cam_offset_pos=mn.Vector3(
-                        0.0, 0.0, 0.1
-                    ),
-                    cam_orientation=mn.Vector3(
-                        np.pi / 2.0, 0.0, 3.0 * np.pi / 2.0
-                    ),
+                    cam_offset_pos=mn.Vector3(0.0, 0.0, 0.1),
+                    cam_orientation=mn.Vector3(np.pi / 2.0, 0.0, 3.0 * np.pi / 2.0),
                     attached_link_id=37,
                 ),
                 "third": ArticulatedAgentCameraParams(
-                    cam_offset_pos=mn.Vector3(-1.0, 0.0, 1.0),
+                    cam_offset_pos=mn.Vector3(-1.0, -1.0, 1.0),
                     cam_orientation=mn.Vector3(np.pi / 4.0, 0.0, 3.0 * np.pi / 2.0),
                     attached_link_id=37,
                 ),
